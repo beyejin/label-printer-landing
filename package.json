@@ -1,10 +1,13 @@
 {
   "name": "ojillen-landing",
   "private": true,
-  "description": "오지렌 미니 라벨프린터 수업용 A/B 랜딩페이지",
+  "description": "오지렌 네임스티커 감열식 라벨프린터 라벨기 핑크 수업용 A/B 랜딩페이지",
   "scripts": {
     "build": "node build.js",
     "test": "node --test",
     "start": "node server.js"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.1"
   }
 }

@@ -4,20 +4,40 @@ const path = require("path");
 
 const root = __dirname;
 const dist = path.join(root, "dist");
+const productName = "오지렌 네임스티커 감열식 라벨프린터 라벨기 핑크";
 const required = [
+  productName,
   "폰·카드·케이블",
   "문구 한 줄로 내 스타일 완성",
-  "쿠팡 2만 원대",
-  "판매가는 시기마다 달라요",
-  "전용 라벨지 별도",
-  "예시 후기",
+  "초안, 실제 광고 전 확인 필요",
+  "초안 안전장치",
+  "AI로 만든 예시 이미지(실제 상품 아님)",
+  "상품 사진 자리",
   "구매하기",
+  'target="_blank"',
+  'rel="noopener"',
+  "/events.js",
   "/pixel.js",
-  "/assets/hero.jpg",
-  "잉크·리본 필요 없는 감열식",
-  "블루투스로 휴대폰 앱 연결",
-  "글자·그림·날짜·QR코드 출력",
-  "한국어 지원 · 핑크"
+  "/app.js"
+];
+const forbidden = [
+  "쿠팡 2만",
+  "19,900",
+  "19900",
+  "블루투스",
+  "QR코드",
+  "잉크",
+  "리본",
+  "한국어 지원",
+  "라벨지",
+  "미니",
+  "예시 후기",
+  "실제 제품 사진",
+  "hero.jpg",
+  "fbevents",
+  "facebook.com/tr",
+  "Lead",
+  "2만 원"
 ];
 
 function read(file) {
@@ -36,11 +56,23 @@ function assertSource() {
   const a = read("a/index.html");
   const b = read("b/index.html");
   const home = read("index.html");
+  const events = read("events.js");
+  const app = read("app.js");
+  const pixel = read("pixel.js");
+  const config = read("config.js");
+  for (const html of [a, b, home]) {
+    if (!html.includes("초안, 실제 광고 전 확인 필요")) {
+      throw new Error("초안 안내가 없습니다.");
+    }
+    if (!html.includes(productName)) throw new Error("상품명이 없습니다.");
+    for (const text of forbidden) {
+      if (html.includes(text)) throw new Error("빼야 할 문구: " + text);
+    }
+  }
   for (const html of [a, b]) {
     for (const text of required) {
       if (!html.includes(text)) throw new Error("랜딩 공통 문구 누락: " + text);
     }
-    if (!html.includes("<!-- pixel-noscript -->")) throw new Error("픽셀 noscript 표시가 없습니다.");
   }
   if (!a.includes("/assets/scene-a.jpg") || a.includes("/assets/scene-b.jpg")) {
     throw new Error("A 장면 이미지가 올바르지 않습니다.");
@@ -53,15 +85,25 @@ function assertSource() {
   if (sharedShell(a) !== sharedShell(b)) {
     throw new Error("A/B는 가운데 동기 구간과 제목만 달라야 합니다.");
   }
-  if (home.includes("/pixel.js") || home.includes("fbq(")) {
+  if (home.includes("/pixel.js") || home.includes("fbq(") || home.includes("/events.js")) {
     throw new Error("루트 페이지에는 픽셀을 넣지 않습니다.");
   }
   if (!home.includes('location.replace("/" + variant')) throw new Error("루트 리다이렉트가 없습니다.");
-  const pixel = read("pixel.js");
-  if (!pixel.includes('fbq("track", "PageView")')) throw new Error("PageView가 없습니다.");
-  const app = read("app.js");
-  if (!app.includes('"Lead"') || !app.includes("variant:")) throw new Error("Lead 이벤트가 없습니다.");
-  for (const file of ["app.js", "pixel.js", "config.js", "server.js"]) {
+  if (!events.includes('pageView: "PageView"') || !events.includes('buyClick: "BuyClick"')) {
+    throw new Error("이벤트 이름 상수가 없습니다.");
+  }
+  if (!events.includes("구매하기 클릭 = 전환")) throw new Error("전환 주석이 없습니다.");
+  if (app.includes('"Lead"') || app.includes("'Lead'")) throw new Error("Lead가 남아 있습니다.");
+  if (!app.includes("events.pageView") || !app.includes("events.buyClick")) {
+    throw new Error("이벤트 상수를 쓰지 않습니다.");
+  }
+  if (!app.includes('trackCustom')) throw new Error("trackCustom이 없습니다.");
+  if (pixel.includes("fbq(") && pixel.indexOf("activate") === -1) {
+    throw new Error("픽셀 파일이 바로 실행되면 안 됩니다.");
+  }
+  if (!config.includes('pixelId: ""')) throw new Error("픽셀 ID 자리가 비어 있지 않습니다.");
+  if (/pixelId:\s*"\d+"/.test(config)) throw new Error("소스에 픽셀 숫자가 있습니다.");
+  for (const file of ["app.js", "pixel.js", "config.js", "events.js", "server.js"]) {
     const result = spawnSync(process.execPath, ["--check", path.join(root, file)], { encoding: "utf8" });
     if (result.status !== 0) throw new Error(result.stderr || file + " 구문 오류");
   }
@@ -81,7 +123,7 @@ function pixelIdFrom(configSource, env) {
 }
 
 function withPixelId(configSource, id) {
-  return configSource.replace(/pixelId:\s*"[^"]*"/, 'pixelId: ' + JSON.stringify(id));
+  return configSource.replace(/pixelId:\s*"[^"]*"/, "pixelId: " + JSON.stringify(id));
 }
 
 function copyFile(rel) {
@@ -96,43 +138,35 @@ function build(env) {
   fs.rmSync(dist, { recursive: true, force: true });
   const configSource = read("config.js");
   const pixelId = pixelIdFrom(configSource, sourceEnv);
-  const numericId = /^\d{5,20}$/.test(pixelId) ? pixelId : "";
-  const noscript = numericId
-    ? '<noscript><img height="1" width="1" alt="" style="display:none" src="https://www.facebook.com/tr?id=' +
-      numericId +
-      '&ev=PageView&noscript=1"></noscript>'
-    : "";
-
-  for (const rel of [
+  const files = [
     "index.html",
     "a/index.html",
     "b/index.html",
     "styles.css",
     "app.js",
+    "events.js",
     "pixel.js",
     "server.js",
-    "assets/hero.jpg",
     "assets/scene-a.jpg",
     "assets/scene-b.jpg",
     "assets/fonts/pretendard-400.woff2",
     "assets/fonts/pretendard-700.woff2",
     "assets/fonts/pretendard-900.woff2"
-  ]) {
-    copyFile(rel);
-  }
+  ];
+  if (fs.existsSync(path.join(root, "assets/product.jpg"))) files.push("assets/product.jpg");
+  for (const rel of files) copyFile(rel);
   fs.writeFileSync(path.join(dist, "config.js"), withPixelId(configSource, pixelId));
-  for (const rel of ["a/index.html", "b/index.html"]) {
-    const file = path.join(dist, rel);
-    const html = fs.readFileSync(file, "utf8").replace("<!-- pixel-noscript -->", noscript);
-    fs.writeFileSync(file, html);
+  const landing = fs.readFileSync(path.join(dist, "a/index.html"), "utf8");
+  if (landing.includes("fbevents") || landing.includes("facebook.com/tr")) {
+    throw new Error("빌드 결과에 Meta 스크립트가 들어가면 안 됩니다.");
   }
-  return { pixelId: pixelId, numericId: numericId };
+  return { pixelId: pixelId };
 }
 
 if (require.main === module) {
   try {
     const result = build(process.env);
-    console.log(result.numericId ? "build ok, pixel " + result.numericId : "build ok, pixel id 없음");
+    console.log(result.pixelId ? "build ok, pixel " + result.pixelId : "build ok, pixel id 없음");
   } catch (error) {
     console.error(error.message || error);
     process.exit(1);

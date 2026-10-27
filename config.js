@@ -1,9 +1,12 @@
-// 수업 설정.
-// 픽셀 ID는 숫자만 넣거나, 배포 시 환경변수 META_PIXEL_ID로 덮어씁니다.
-// 픽셀 ID는 웹페이지에 공개되는 값입니다. 액세스 토큰은 넣지 마세요.
+// 수업 초안 설정.
+// 픽셀 ID는 비워 둡니다. 숫자만 직접 넣거나, 배포 환경변수 META_PIXEL_ID로 덮어씁니다.
+// 가짜 숫자를 넣지 마세요. 픽셀 ID는 페이지에 공개되는 값입니다. 액세스 토큰은 넣지 마세요.
 window.OJILLEN = {
   pixelId: "",
   coupangUrl: "https://www.coupang.com/vp/products/8113159630?itemId=22992058726&vendorItemId=95681947785",
   // 쿠팡 파트너스 링크가 생기면 여기에 넣습니다. 비어 있으면 coupangUrl로 이동합니다.
-  partnersUrl: ""
+  partnersUrl: "",
+  // 쿠팡 상품 페이지에서 확인한 사진 파일을 넣은 뒤 경로를 적습니다. 예: "/assets/product.jpg"
+  // 비어 있으면 사진 없이 자리만 보입니다. assets/hero.jpg는 쓰지 않습니다.
+  productPhoto: ""
 };

@@ -1,31 +1,46 @@
-// Meta Pixel 기본 코드. /a 와 /b 에서만 불러옵니다.
-// pixelId가 비어 있으면 요청을 보내지 않습니다.
-(function (window, document) {
-  var raw = window.OJILLEN && window.OJILLEN.pixelId;
-  var id = String(raw || "").trim();
-  if (!/^\d{5,20}$/.test(id)) {
-    window.OJILLEN_PIXEL_ID = "";
-    return;
+// 동의 전에는 이 파일을 불러도 Meta 스크립트를 넣지 않는다.
+// activate는 동의 뒤에서만 호출한다.
+(function (root, factory) {
+  var api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  if (root) root.OJILLEN_PIXEL = api;
+})(typeof globalThis !== "undefined" ? globalThis : this, function () {
+  var scriptUrl = "https://connect.facebook.net/en_US/fbevents.js";
+
+  function normalizePixelId(value) {
+    var id = String(value || "").trim();
+    return /^\d{5,20}$/.test(id) ? id : "";
   }
-  window.OJILLEN_PIXEL_ID = id;
 
-  !(function (f, b, e, v, n, t, s) {
-    if (f.fbq) return;
-    n = f.fbq = function () {
-      n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
-    };
-    if (!f._fbq) f._fbq = n;
-    n.push = n;
-    n.loaded = !0;
-    n.version = "2.0";
-    n.queue = [];
-    t = b.createElement(e);
-    t.async = !0;
-    t.src = v;
-    s = b.getElementsByTagName(e)[0];
-    s.parentNode.insertBefore(t, s);
-  })(window, document, "script", "https://connect.facebook.net/en_US/fbevents.js");
+  function activate(win, doc, pixelId) {
+    var id = normalizePixelId(pixelId);
+    if (!id || !win || !doc) return false;
+    if (!win.fbq) {
+      var queue = function () {
+        queue.callMethod ? queue.callMethod.apply(queue, arguments) : queue.queue.push(arguments);
+      };
+      win.fbq = queue;
+      if (!win._fbq) win._fbq = queue;
+      queue.push = queue;
+      queue.loaded = true;
+      queue.version = "2.0";
+      queue.queue = [];
+    }
+    var selector = 'script[src="' + scriptUrl + '"]';
+    if (!doc.querySelector(selector)) {
+      var tag = doc.createElement("script");
+      tag.async = true;
+      tag.src = scriptUrl;
+      var first = doc.getElementsByTagName("script")[0];
+      if (first && first.parentNode) first.parentNode.insertBefore(tag, first);
+      else (doc.head || doc.documentElement).appendChild(tag);
+    }
+    return true;
+  }
 
-  window.fbq("init", id);
-  window.fbq("track", "PageView");
-})(window, document);
+  return {
+    scriptUrl: scriptUrl,
+    normalizePixelId: normalizePixelId,
+    activate: activate
+  };
+});

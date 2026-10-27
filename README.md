@@ -1,112 +1,123 @@
-# 오지렌 미니 라벨프린터 랜딩페이지
+# 오지렌 네임스티커 감열식 라벨프린터 라벨기 핑크
 
-폰, 카드, 케이블을 문구 한 줄로 꾸미는 핑크 미니 라벨프린터의 수업용 A/B 랜딩페이지입니다. HTML, CSS, JavaScript만 사용합니다. 광고는 Meta(Facebook/Instagram)에 걸고, 전환은 이 페이지의 **구매하기** 클릭입니다. 쿠팡에서 실제 결제까지 가지 않아도 전환으로 셉니다.
-
-두 페이지는 위쪽 제품 사진, 특징 칩, 가격 영역이 같고, 가운데 동기 구간만 다릅니다.
+수업용 초안 랜딩입니다. 모든 페이지 위에 **초안, 실제 광고 전 확인 필요**가 있습니다. 가격 숫자, 판매량, 순위, 만족도, 후기는 넣지 않습니다.
 
 - A 나만의 것: `/a`
 - B 친구랑 함께: `/b`
-- `/` 는 팀용 주소 안내입니다. 픽셀이 없고 구매 버튼도 없습니다. `/?v=a`, `/?v=b` 는 광고에 쓰던 예전 주소라서 각각 `/a`, `/b`로 넘깁니다.
-
-후기는 모두 **예시 후기**로 표시합니다. 가운데 장면 사진은 예시 이미지이고, 위쪽은 실제 제품 사진입니다.
+- `/` 는 주소 안내입니다. Meta 스크립트를 불러오지 않습니다. `/?v=a`, `/?v=b` 는 `/a`, `/b`로 넘깁니다.
 
 ## 로컬에서 보기
 
 ```sh
+npm install
 npm start
 ```
-
-브라우저에서 다음 주소를 엽니다.
 
 - http://127.0.0.1:8765/a
 - http://127.0.0.1:8765/b
 - http://127.0.0.1:8765/
 
-`python3 -m http.server 8765` 로 열 수도 있습니다. 그 서버는 `/a/` 처럼 끝에 슬래시가 필요합니다.
-
-확인:
+`python3 -m http.server 8765` 는 `/a/` 처럼 끝에 슬래시가 필요합니다.
 
 ```sh
 npm test
 npm run build
 ```
 
-## 픽셀 ID 설정
+## 상품 사진
 
-픽셀 ID는 숫자입니다. 이벤트 관리자 → 데이터 소스 → 픽셀에서 복사합니다. 이 값은 페이지 소스에 그대로 들어가므로 숨길 수 없습니다. **액세스 토큰은 넣지 마세요.**
+기본값은 빈 자리입니다. `assets/hero.jpg`는 쿠팡 상품 페이지의 대표 이미지와 같은 파일로 확인되지 않아 페이지에서 쓰지 않습니다.
 
-둘 중 하나만 하면 됩니다.
+쿠팡 상품 페이지에서 확인한 사진만 넣을 때:
 
-1. `config.js`의 `pixelId`에 숫자만 넣습니다. 로컬 `npm start`로 바로 확인할 수 있습니다.
-2. 배포 환경변수 `META_PIXEL_ID`에 같은 숫자를 넣습니다. `node build.js`가 `dist/config.js`의 `pixelId`를 이 값으로 바꿉니다. 환경변수가 있으면 `config.js`보다 우선합니다.
+1. 파일을 `assets/product.jpg`로 저장합니다.
+2. `config.js`의 `productPhoto`를 `"/assets/product.jpg"`로 바꿉니다.
+3. `npm run build`는 그 파일이 있을 때만 `dist`에 복사합니다.
 
-ID가 비어 있거나 숫자가 아니면 픽셀을 불러오지 않습니다. 구매하기는 그대로 쿠팡으로 이동합니다.
+`productPhoto`가 비어 있으면 사진 없이 “상품 사진 자리”만 보입니다.
+
+가운데 `assets/scene-a.jpg`, `assets/scene-b.jpg`는 예시 장면입니다. 각 이미지 바로 위에 **AI로 만든 예시 이미지(실제 상품 아님)** 라고 적혀 있습니다.
+
+## 초안 안전장치
+
+배너 이름은 초안 안전장치입니다. 방문자가 **동의**를 누르기 전에는 `fbevents.js`를 넣지 않고 이벤트도 보내지 않습니다. `noscript` 픽셀 이미지도 없습니다.
+
+동의하시면 페이지 방문과 구매하기 클릭, 변형(A 또는 B)을 Meta에 보냅니다. Meta 스크립트가 브라우저에 기록을 남길 수 있습니다.
+
+**거절**하면 그 선택을 이 브라우저에 남겨 두고 스크립트를 불러오지 않습니다. 구매하기는 동의와 상관없이 새 탭에서 쿠팡을 엽니다. 거절을 지우려면 그 사이트의 저장 데이터를 지우면 됩니다.
+
+픽셀 ID가 비어 있으면 동의해도 스크립트를 넣지 않습니다.
+
+## 이벤트 이름
+
+이름은 `events.js` 한 곳에만 있습니다.
+
+- `PageView`: 동의 뒤 방문마다 보냅니다. 매개변수 `variant`는 `A` 또는 `B`입니다. 새로고침과 재방문도 다시 보냅니다.
+- `BuyClick`: 구매하기 클릭입니다. `trackCustom`으로 보내고 `variant`와 상품명을 담습니다. 표준 이벤트 `Lead`는 쓰지 않습니다.
+
+과제 기준: 구매하기 클릭 = 전환. 집계 문장은 **방문(PageView)당 구매 클릭(BuyClick) 비율**입니다. 사람 수로 묶은 클릭이 아니고, 목표 수치도 두지 않습니다.
+
+같은 페이지를 연 뒤 구매하기를 여러 번 눌러도 `BuyClick`은 한 번입니다. 같은 탭에서 새로고침해도 그 변형의 `BuyClick`은 다시 보내지 않습니다(`sessionStorage`). A와 B는 따로 셉니다. `PageView`는 이렇게 막지 않습니다.
+
+구매하기는 `target="_blank"` `rel="noopener"` 로 새 탭을 엽니다. 이 페이지는 그대로 둡니다. 왼쪽 클릭, Ctrl, Shift, 가운데 클릭도 같은 이벤트를 보냅니다. 이벤트를 기다리느라 이동을 늦추지 않습니다. Meta가 받았다고 적지 않습니다.
+
+## 픽셀 ID
+
+픽셀 ID는 숫자입니다. 이벤트 관리자에서 복사합니다. 페이지에 보이는 값입니다. 액세스 토큰은 넣지 마세요. 가짜 숫자는 넣지 마세요.
+
+1. `config.js`의 `pixelId`에 숫자만 넣거나
+2. 배포 환경변수 `META_PIXEL_ID`에 넣습니다. `node build.js`가 `dist/config.js`만 바꿉니다. 환경변수가 있으면 파일보다 우선합니다. 숫자가 아니면 빌드가 멈춥니다.
+
+비어 있으면 픽셀을 불러오지 않습니다. 구매하기는 그대로 동작합니다.
 
 쿠팡 파트너스 링크가 생기면 `config.js`의 `partnersUrl`에 넣습니다. 비어 있으면 아래 상품 주소로 갑니다.
 
 `https://www.coupang.com/vp/products/8113159630?itemId=22992058726&vendorItemId=95681947785`
 
-광고 주소에 붙어 온 `utm_*`와 `fbclid`는 구매 링크에 다시 붙입니다. `variant`는 A 또는 B로 붙습니다. 구매 링크에 이미 같은 `utm_`이 있으면 그쪽 값을 유지합니다.
+광고 주소의 `utm_*`와 `fbclid`는 구매 링크에 다시 붙입니다. `variant`는 A 또는 B입니다. 구매 링크에 이미 같은 `utm_`이 있으면 그 값을 유지합니다.
 
 ## 배포
 
-이 저장소는 Vercel 정적 사이트입니다. `vercel.json`에 빌드 명령 `node build.js`, 출력 폴더 `dist`가 들어 있습니다.
+`vercel.json`의 빌드 명령은 `node build.js`, 출력 폴더는 `dist`입니다.
 
-1. [Vercel](https://vercel.com)에서 이 저장소를 연결합니다. Framework Preset은 Other입니다.
-2. Environment Variables에 `META_PIXEL_ID`를 숫자로 추가합니다. Production에 넣어야 광고 랜딩에 픽셀이 들어갑니다.
-3. 배포합니다. 빌드는 두 랜딩의 공통 구조가 깨지지 않았는지 확인합니다. 구매 링크 전달은 `npm test`로 확인합니다.
-4. 배포가 끝나면 `https://프로젝트.vercel.app/a` 와 `/b`가 열려야 합니다.
+1. Vercel에서 이 저장소를 연결합니다. Framework Preset은 Other입니다.
+2. 픽셀을 만든 뒤 Production 환경변수 `META_PIXEL_ID`에 숫자만 넣습니다.
+3. 배포합니다.
+4. `https://프로젝트.vercel.app/a` 와 `/b`를 엽니다. `/`는 광고 주소로 쓰지 않습니다.
 
-`config.js`에 ID를 적어 커밋해도 동작합니다. 저장소에 ID를 남기기 싫으면 환경변수만 사용하고 `pixelId`는 빈 문자열로 둡니다.
+| 광고 세트 | 도착 URL |
+| --- | --- |
+| A 나만의 것 | `https://프로젝트.vercel.app/a` |
+| B 친구랑 함께 | `https://프로젝트.vercel.app/b` |
 
-## 광고 세트 주소
-
-캠페인 하나에 광고 세트 두 개를 두고, 도착 URL만 다르게 합니다.
-
-| 광고 세트 | 페이지 | 도착 URL |
-| --- | --- | --- |
-| A 나만의 것 | `/a` | `https://프로젝트.vercel.app/a` |
-| B 친구랑 함께 | `/b` | `https://프로젝트.vercel.app/b` |
-
-UTM을 광고에서 직접 붙이면 구매 링크까지 전달됩니다.
+UTM 예:
 
 ```text
 https://프로젝트.vercel.app/a?utm_source=meta&utm_medium=paid&utm_campaign=ojillen&utm_content=A
 https://프로젝트.vercel.app/b?utm_source=meta&utm_medium=paid&utm_campaign=ojillen&utm_content=B
 ```
 
-`/` 는 광고 도착 URL로 쓰지 않습니다. 픽셀이 없어서 그 트래픽은 측정되지 않습니다.
+## 자동 테스트와 실제 Meta 확인
 
-Meta가 보고하는 CTR은 광고 관리자의 노출·클릭입니다. CVR은 랜딩의 구매하기 클릭입니다. 구매하기를 누르면 표준 이벤트 `Lead`가 나가고, 매개변수 `variant`는 `A` 또는 `B`입니다. `content_name`은 `오지렌 미니 라벨프린터`입니다. 픽셀이 이벤트를 보낸 뒤에 쿠팡으로 이동합니다. 픽셀이 없으면 바로 이동합니다.
+`npm test`는 가짜 `fbq`와 jsdom으로만 확인합니다. Meta 서버로 이벤트를 보내지 않습니다. 테스트 파일 안의 숫자는 목업 ID이며 `config.js`에 넣지 않습니다.
 
-## 이벤트 확인
-
-광고 차단을 끄고 확인합니다.
-
-1. 크롬에 [Meta Pixel Helper](https://chrome.google.com/webstore/detail/meta-pixel-helper/fdgfkebogiimcoedlicjlajpkdmockpc)를 설치합니다.
-2. 이벤트 관리자 → 해당 픽셀 → **테스트 이벤트**를 엽니다. 안내하는 테스트 브라우저로 배포된 `/a`를 엽니다.
-3. Pixel Helper에 PageView와 픽셀 ID가 보여야 합니다. 테스트 이벤트 목록에도 PageView가 찍힙니다.
-4. **구매하기**를 누릅니다. 페이지가 쿠팡으로 넘어가기 전에 `Lead`가 떠야 하고, 매개변수 `variant`가 `A`여야 합니다. `/b`에서도 같게 하되 `variant`는 `B`입니다.
-5. 테스트 이벤트 목록에서 `Lead`의 `variant`를 확인합니다. 여기까지 보이면 픽셀 설치는 된 것입니다.
-6. ID를 바꾸었다면 배포를 다시 한 뒤, 시크릿 창에서 새로고침하고 다시 확인합니다. Helper에 픽셀이 없다고 나오면 `config.js` 또는 `META_PIXEL_ID`가 비어 있는 배포입니다.
-
-이벤트 관리자에서 웹사이트 URL을 배포 주소로 저장해 두면 테스트 이벤트에서 그 주소를 바로 열 수 있습니다. 도메인 인증은 전환 API나 일부 광고 최적화에 필요할 수 있습니다. PageView와 Lead가 테스트 이벤트에 보이는지만 먼저 확인하면 됩니다.
+Meta가 이벤트를 받았는지는 이 테스트로 알 수 없습니다. 배포 후 이벤트 관리자의 테스트 이벤트에서 `PageView`의 `variant`와 `BuyClick`의 `variant`를 직접 봐야 합니다. 광고 차단은 끄고, 페이지에서 동의를 누른 다음 구매하기를 누릅니다.
 
 ## 파일
 
 ```text
-index.html          루트 안내. 픽셀 없음
-a/index.html        변형 A
-b/index.html        변형 B
-styles.css          공통 스타일
-app.js              구매 링크, UTM 전달, Lead
-pixel.js            픽셀 기본 코드와 PageView
-config.js           픽셀 ID, 쿠팡 주소, 파트너스 주소
-build.js            dist 생성. META_PIXEL_ID 반영
-server.js           로컬 서버
-assets/hero.jpg     실제 제품 사진
-assets/scene-a.jpg  A 예시 장면
-assets/scene-b.jpg  B 예시 장면
+index.html       루트 안내. 픽셀 없음
+a/index.html     변형 A
+b/index.html     변형 B
+events.js        PageView, BuyClick, 상품명
+app.js           동의, 구매 링크, BuyClick
+pixel.js         동의 후에만 fbevents.js
+config.js        픽셀 ID, 쿠팡 주소, 상품 사진 경로
+build.js         dist 생성
+styles.css
+server.js
+assets/scene-a.jpg
+assets/scene-b.jpg
 ```
 
-페이지의 제품 사진 위 헤드라인과 사용 예시는 수업용 표현입니다. 가격은 쿠팡에서 시기마다 달라지고, 전용 라벨지는 별도입니다. 상표와 제품명은 해당 권리자의 소유이며 이 페이지는 공식 판매 사이트가 아닙니다.
+이 페이지는 공식 판매 사이트가 아닙니다. 상품명은 과제에 적힌 이름을 그대로 씁니다.

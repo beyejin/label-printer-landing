@@ -1,13 +1,15 @@
 (function (factory) {
   var api = factory();
   if (typeof module === "object" && module.exports) module.exports = api;
-  if (typeof document === "undefined") return;
+  if (typeof document === "undefined" || typeof window === "undefined") return;
   var start = function () {
-    api.bindLanding(document, window);
+    api.boot(document, window);
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
   else start();
 })(function () {
+  var CONSENT_KEY = "ojillen-draft-consent";
+
   function normalizePixelId(value) {
     var id = String(value || "").trim();
     return /^\d{5,20}$/.test(id) ? id : "";
@@ -15,6 +17,10 @@
 
   function normalizeVariant(value) {
     return String(value || "").toUpperCase() === "B" ? "B" : "A";
+  }
+
+  function buyClickKey(variant) {
+    return "ojillen-buyclick-" + normalizeVariant(variant);
   }
 
   function buildDestination(config, variant, search) {
@@ -34,83 +40,144 @@
     return url.toString();
   }
 
-  // fbevents.js가 callMethod를 붙이기 전에는 이벤트가 메모리 큐에만 있습니다.
-  // 그 상태에서 페이지를 떠나면 Lead가 사라지므로, 라이브러리가 준비된 뒤에 보냅니다.
-  function whenPixelReady(win, timeoutMs, done) {
-    var started = Date.now();
-    (function check() {
-      var fbq = win.fbq;
-      if (fbq && typeof fbq.callMethod === "function") {
-        done(true);
-        return;
-      }
-      if (Date.now() - started >= timeoutMs) {
-        done(false);
-        return;
-      }
-      win.setTimeout(check, 50);
-    })();
+  function readConsent(win) {
+    try {
+      var value = win.localStorage.getItem(CONSENT_KEY);
+      return value === "agree" || value === "decline" ? value : "";
+    } catch (error) {
+      return "";
+    }
   }
 
-  function bindLanding(doc, win) {
-    var link = doc.querySelector("[data-buy]");
-    if (!link) return;
+  function writeConsent(win, choice) {
+    try {
+      win.localStorage.setItem(CONSENT_KEY, choice);
+    } catch (error) {}
+  }
+
+  function readBuySent(win, variant) {
+    try {
+      return win.sessionStorage.getItem(buyClickKey(variant)) === "1";
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function markBuySent(win, variant) {
+    try {
+      win.sessionStorage.setItem(buyClickKey(variant), "1");
+    } catch (error) {}
+  }
+
+  function showConsent(doc, show) {
+    var box = doc.getElementById("consent");
+    if (!box) return;
+    box.hidden = !show;
+  }
+
+  function renderPhoto(doc, config, productName) {
+    var slot = doc.querySelector("[data-product-photo]");
+    if (!slot) return;
+    var src = config && String(config.productPhoto || "").trim();
+    if (!src) return;
+    while (slot.firstChild) slot.removeChild(slot.firstChild);
+    var img = doc.createElement("img");
+    img.src = src;
+    img.alt = productName;
+    slot.appendChild(img);
+  }
+
+  function boot(doc, win) {
+    var events = win.OJILLEN_EVENTS;
+    var pixelApi = win.OJILLEN_PIXEL;
+    if (!events || !pixelApi) return;
     var config = win.OJILLEN || {};
     var variant = normalizeVariant(doc.documentElement.getAttribute("data-variant"));
-    var destination = link.href;
-    try {
-      destination = buildDestination(config, variant, new URLSearchParams(win.location.search));
-      link.href = destination;
-    } catch (error) {
-      destination = link.href;
+    renderPhoto(doc, config, events.productName);
+
+    var link = doc.querySelector("[data-buy]");
+    if (link) {
+      try {
+        link.href = buildDestination(config, variant, new URLSearchParams(win.location.search));
+      } catch (error) {}
+      link.target = "_blank";
+      link.rel = "noopener";
     }
 
-    link.addEventListener("click", function (event) {
-      if (event.defaultPrevented) return;
-      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-      var pixelId = win.OJILLEN_PIXEL_ID || normalizePixelId(config.pixelId);
-      if (!pixelId) return;
+    var stored = readConsent(win);
+    showConsent(doc, stored !== "agree" && stored !== "decline");
 
-      event.preventDefault();
-      if (link.getAttribute("aria-busy") === "true") return;
-      link.setAttribute("aria-busy", "true");
+    var pageViewSent = false;
+    var buySent = readBuySent(win, variant);
 
-      var finished = false;
-      function go() {
-        if (finished) return;
-        finished = true;
-        win.location.assign(destination);
+    function startPixel() {
+      if (readConsent(win) !== "agree") return;
+      if (pageViewSent) return;
+      var id = normalizePixelId((win.OJILLEN || {}).pixelId);
+      if (!id) return;
+      if (!pixelApi.activate(win, doc, id)) return;
+      pageViewSent = true;
+      try {
+        win.fbq("init", id);
+        win.fbq("track", events.pageView, { variant: variant });
+      } catch (error) {}
+    }
+
+    function sendBuyClick() {
+      if (buySent || readBuySent(win, variant)) {
+        buySent = true;
+        return;
       }
+      if (readConsent(win) !== "agree") return;
+      var id = normalizePixelId((win.OJILLEN || {}).pixelId);
+      if (!id || typeof win.fbq !== "function") return;
+      buySent = true;
+      markBuySent(win, variant);
+      try {
+        win.fbq("trackCustom", events.buyClick, {
+          variant: variant,
+          content_name: events.productName
+        });
+      } catch (error) {}
+    }
 
-      whenPixelReady(win, 1000, function (ready) {
-        if (!ready || typeof win.fbq !== "function") {
-          go();
-          return;
-        }
-        try {
-          win.fbq(
-            "track",
-            "Lead",
-            {
-              variant: variant,
-              content_name: "오지렌 미니 라벨프린터",
-              content_category: "label-printer"
-            },
-            { eventCallback: go }
-          );
-        } catch (error) {
-          go();
-          return;
-        }
-        win.setTimeout(go, 800);
+    if (link) {
+      // 이동은 막지 않는다. target="_blank"가 새 탭을 연다.
+      // 왼쪽 클릭, Ctrl/Shift/Meta 클릭, 가운데 클릭(auxclick) 모두 같은 이벤트를 한 번만 보낸다.
+      link.addEventListener("click", function () {
+        sendBuyClick();
       });
-    });
+      link.addEventListener("auxclick", function () {
+        sendBuyClick();
+      });
+    }
+
+    var agree = doc.getElementById("consent-agree");
+    var decline = doc.getElementById("consent-decline");
+    if (agree) {
+      agree.addEventListener("click", function () {
+        writeConsent(win, "agree");
+        showConsent(doc, false);
+        startPixel();
+      });
+    }
+    if (decline) {
+      decline.addEventListener("click", function () {
+        writeConsent(win, "decline");
+        showConsent(doc, false);
+      });
+    }
+
+    if (stored === "agree") startPixel();
   }
 
   return {
+    consentKey: CONSENT_KEY,
+    buyClickKey: buyClickKey,
     normalizePixelId: normalizePixelId,
     normalizeVariant: normalizeVariant,
     buildDestination: buildDestination,
-    bindLanding: bindLanding
+    readConsent: readConsent,
+    boot: boot
   };
 });
