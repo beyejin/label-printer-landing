@@ -1,6 +1,116 @@
-const data={a:{prime:'친구와 취향이 통하는 순간',description:'폰, 카드, 케이블에 우리만 아는 문구를 붙여보세요. 매일 쓰는 물건에 함께하는 취향이 남아요.',heading:'우리끼리만 아는 한 줄,',heading2:'매일 쓰는 물건에.',body:'친구와 맞춘 애칭, 우리 팀의 한마디. 같은 문구를 나눠 붙이면 평범한 물건에도 우리만의 이야기가 생겨요.',end:'우리의 취향을, 한 줄로.'},b:{prime:'내 취향이 눈에 띄는 순간',description:'폰, 카드, 케이블에 내가 고른 문구를 붙여보세요. 매일 쓰는 물건에서 내 스타일이 드러나요.',heading:'어디서 샀냐고 묻고 싶은,',heading2:'내 취향의 한 줄.',body:'좋아하는 문구, 나를 표현하는 한마디. 직접 고른 문구를 붙여 평범한 물건을 나만의 소품으로 바꿔보세요.',end:'내 스타일을, 한 줄로.'}};
-const params=new URLSearchParams(location.search);const variant=params.get('v')==='b'?'b':'a';const copy=data[variant];
-document.querySelectorAll('[data-copy]').forEach(el=>el.textContent=copy[el.dataset.copy]);
-if(params.get('export')==='1')document.body.classList.add('export');
-document.querySelector('#label-text').addEventListener('input',event=>{document.querySelector('#label-preview').textContent=event.target.value.trim()||'내 취향 100%';});
-document.querySelectorAll('[data-buy]').forEach(button=>button.addEventListener('click',()=>{document.querySelector('#purchase-note').textContent='수업용 페이지입니다. 실제 결제는 진행되지 않아요.';document.querySelector('#purchase-note').hidden=false;}));
+(function (factory) {
+  var api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  if (typeof document === "undefined") return;
+  var start = function () {
+    api.bindLanding(document, window);
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
+  else start();
+})(function () {
+  function normalizePixelId(value) {
+    var id = String(value || "").trim();
+    return /^\d{5,20}$/.test(id) ? id : "";
+  }
+
+  function normalizeVariant(value) {
+    return String(value || "").toUpperCase() === "B" ? "B" : "A";
+  }
+
+  function buildDestination(config, variant, search) {
+    var partners = config && String(config.partnersUrl || "").trim();
+    var product = config && String(config.coupangUrl || "").trim();
+    var base = partners || product;
+    if (!base) throw new Error("구매 링크가 설정되지 않았습니다.");
+    var url = new URL(base);
+    var params = search instanceof URLSearchParams ? search : new URLSearchParams(search || "");
+    params.forEach(function (value, key) {
+      if (!value) return;
+      if ((key.indexOf("utm_") === 0 || key === "fbclid") && !url.searchParams.has(key)) {
+        url.searchParams.set(key, value);
+      }
+    });
+    url.searchParams.set("variant", normalizeVariant(variant));
+    return url.toString();
+  }
+
+  // fbevents.js가 callMethod를 붙이기 전에는 이벤트가 메모리 큐에만 있습니다.
+  // 그 상태에서 페이지를 떠나면 Lead가 사라지므로, 라이브러리가 준비된 뒤에 보냅니다.
+  function whenPixelReady(win, timeoutMs, done) {
+    var started = Date.now();
+    (function check() {
+      var fbq = win.fbq;
+      if (fbq && typeof fbq.callMethod === "function") {
+        done(true);
+        return;
+      }
+      if (Date.now() - started >= timeoutMs) {
+        done(false);
+        return;
+      }
+      win.setTimeout(check, 50);
+    })();
+  }
+
+  function bindLanding(doc, win) {
+    var link = doc.querySelector("[data-buy]");
+    if (!link) return;
+    var config = win.OJILLEN || {};
+    var variant = normalizeVariant(doc.documentElement.getAttribute("data-variant"));
+    var destination = link.href;
+    try {
+      destination = buildDestination(config, variant, new URLSearchParams(win.location.search));
+      link.href = destination;
+    } catch (error) {
+      destination = link.href;
+    }
+
+    link.addEventListener("click", function (event) {
+      if (event.defaultPrevented) return;
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      var pixelId = win.OJILLEN_PIXEL_ID || normalizePixelId(config.pixelId);
+      if (!pixelId) return;
+
+      event.preventDefault();
+      if (link.getAttribute("aria-busy") === "true") return;
+      link.setAttribute("aria-busy", "true");
+
+      var finished = false;
+      function go() {
+        if (finished) return;
+        finished = true;
+        win.location.assign(destination);
+      }
+
+      whenPixelReady(win, 1000, function (ready) {
+        if (!ready || typeof win.fbq !== "function") {
+          go();
+          return;
+        }
+        try {
+          win.fbq(
+            "track",
+            "Lead",
+            {
+              variant: variant,
+              content_name: "오지렌 미니 라벨프린터",
+              content_category: "label-printer"
+            },
+            { eventCallback: go }
+          );
+        } catch (error) {
+          go();
+          return;
+        }
+        win.setTimeout(go, 800);
+      });
+    });
+  }
+
+  return {
+    normalizePixelId: normalizePixelId,
+    normalizeVariant: normalizeVariant,
+    buildDestination: buildDestination,
+    bindLanding: bindLanding
+  };
+});
