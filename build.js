@@ -37,7 +37,10 @@ const forbidden = [
   "fbevents",
   "facebook.com/tr",
   "Lead",
-  "2만 원"
+  "2만 원",
+  "한정판",
+  "딱 한 장",
+  "세상에 하나뿐"
 ];
 
 function read(file) {
@@ -80,7 +83,7 @@ function assertSource() {
   if (!b.includes("/assets/scene-b.jpg") || b.includes("/assets/scene-a.jpg")) {
     throw new Error("B 장면 이미지가 올바르지 않습니다.");
   }
-  if (!a.includes("세상에 하나뿐인 문구, 남들과 겹치지 않게")) throw new Error("A 헤드라인 누락");
+  if (!a.includes("나만의 문구, 남들과 겹치지 않게")) throw new Error("A 헤드라인 누락");
   if (!b.includes("친구랑 맞춰 붙이는 우리 편 라벨")) throw new Error("B 헤드라인 누락");
   if (sharedShell(a) !== sharedShell(b)) {
     throw new Error("A/B는 가운데 동기 구간과 제목만 달라야 합니다.");

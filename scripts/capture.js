@@ -38,7 +38,7 @@ async function inspect(page) {
       productShown: text.includes("오지렌 네임스티커 감열식 라벨프린터 라벨기 핑크"),
       ai: text.includes("AI로 만든 예시 이미지(실제 상품 아님)"),
       slot: text.includes("상품 사진 자리"),
-      banned: ["쿠팡 2만", "19,900", "블루투스", "QR코드", "예시 후기", "실제 제품 사진", "미니"].filter((item) => text.includes(item)),
+      banned: ["쿠팡 2만", "19,900", "블루투스", "QR코드", "예시 후기", "실제 제품 사진", "미니", "한정판", "딱 한 장", "세상에 하나뿐"].filter((item) => text.includes(item)),
       boxes: {
         draft: box(".draft-banner"),
         consent: box("#consent"),
@@ -60,11 +60,11 @@ async function inspect(page) {
   });
   const shots = [
     ["mobile-a-consent", "/a", 390, null],
-    ["mobile-a-after-decline", "/a", 390, "decline"],
+    ["mobile-a-after-agree", "/a", 390, "agree"],
     ["mobile-b-consent", "/b", 390, null],
     ["mobile-b-after-agree", "/b", 390, "agree"],
     ["desktop-a-consent", "/a", 1280, null],
-    ["desktop-a-after-decline", "/a", 1280, "decline"],
+    ["desktop-a-after-agree", "/a", 1280, "agree"],
     ["desktop-b-consent", "/b", 1280, null],
     ["desktop-b-after-agree", "/b", 1280, "agree"]
   ];
@@ -73,7 +73,7 @@ async function inspect(page) {
   for (const [name, route, width, choice] of shots) {
     const context = await browser.createBrowserContext();
     const page = await context.newPage();
-    await page.setViewport({ width, height: width < 700 ? 844 : 900, deviceScaleFactor: width < 700 ? 2 : 1 });
+    await page.setViewport({ width, height: width < 700 ? 844 : 900, deviceScaleFactor: 1 });
     await page.goto(base + route, { waitUntil: "networkidle0" });
     await page.evaluate(() => document.fonts.ready);
     if (choice) {
