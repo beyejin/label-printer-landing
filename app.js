@@ -104,20 +104,21 @@
       link.rel = "noopener";
     }
 
-    var stored = readConsent(win);
-    showConsent(doc, stored !== "agree" && stored !== "decline");
+    var consent = readConsent(win);
+    showConsent(doc, consent !== "agree" && consent !== "decline");
 
     var pageViewSent = false;
     var buySent = readBuySent(win, variant);
 
     function startPixel() {
-      if (readConsent(win) !== "agree") return;
+      if (consent !== "agree") return;
       if (pageViewSent) return;
       var id = normalizePixelId((win.OJILLEN || {}).pixelId);
       if (!id) return;
       if (!pixelApi.activate(win, doc, id)) return;
       pageViewSent = true;
       try {
+        win.fbq("set", "autoConfig", false, id);
         win.fbq("init", id);
         win.fbq("track", events.pageView, { variant: variant });
       } catch (error) {}
@@ -128,7 +129,7 @@
         buySent = true;
         return;
       }
-      if (readConsent(win) !== "agree") return;
+      if (consent !== "agree") return;
       var id = normalizePixelId((win.OJILLEN || {}).pixelId);
       if (!id || typeof win.fbq !== "function") return;
       buySent = true;
@@ -147,8 +148,8 @@
       link.addEventListener("click", function () {
         sendBuyClick();
       });
-      link.addEventListener("auxclick", function () {
-        sendBuyClick();
+      link.addEventListener("auxclick", function (event) {
+        if (event.button === 1) sendBuyClick();
       });
     }
 
@@ -156,6 +157,7 @@
     var decline = doc.getElementById("consent-decline");
     if (agree) {
       agree.addEventListener("click", function () {
+        consent = "agree";
         writeConsent(win, "agree");
         showConsent(doc, false);
         startPixel();
@@ -163,12 +165,13 @@
     }
     if (decline) {
       decline.addEventListener("click", function () {
+        consent = "decline";
         writeConsent(win, "decline");
         showConsent(doc, false);
       });
     }
 
-    if (stored === "agree") startPixel();
+    if (consent === "agree") startPixel();
   }
 
   return {

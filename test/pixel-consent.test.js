@@ -153,3 +153,29 @@ test("상품 사진 경로가 비어 있으면 이미지를 넣지 않는다", (
   assert.equal(slot.querySelector("img").getAttribute("src"), "/assets/product.jpg");
   assert.equal(slot.querySelector("img").getAttribute("alt"), events.productName);
 });
+
+test("오른쪽 클릭은 전환을 소비하지 않고 다음 실제 클릭을 센다", () => {
+  const win = load("a/index.html", "http://127.0.0.1:8765/a", { pixelId: mockPixelId });
+  win.document.getElementById("consent-agree").click();
+  const link = win.document.querySelector("[data-buy]");
+  link.dispatchEvent(new win.MouseEvent("auxclick", { bubbles: true, button: 2 }));
+  assert.equal(named(win, "trackCustom", events.buyClick).length, 0);
+  assert.equal(win.sessionStorage.getItem(app.buyClickKey("A")), null);
+  link.dispatchEvent(new win.MouseEvent("click", { bubbles: true, button: 0 }));
+  assert.equal(named(win, "trackCustom", events.buyClick).length, 1);
+});
+
+test("브라우저 저장소가 차단돼도 현재 페이지의 동의와 중복 방지가 동작한다", () => {
+  const win = load("b/index.html", "http://127.0.0.1:8765/b", { pixelId: mockPixelId });
+  for (const name of ["localStorage", "sessionStorage"]) {
+    Object.defineProperty(win, name, { get() { throw new Error("storage blocked"); } });
+  }
+  win.document.getElementById("consent-agree").click();
+  assert.equal(pixelScripts(win).length, 1);
+  assert.equal(named(win, "track", events.pageView).length, 1);
+  assert.deepEqual(callsOf(win)[0], ["set", "autoConfig", false, mockPixelId]);
+  const link = win.document.querySelector("[data-buy]");
+  link.dispatchEvent(new win.MouseEvent("click", { bubbles: true, button: 0 }));
+  link.dispatchEvent(new win.MouseEvent("auxclick", { bubbles: true, button: 1 }));
+  assert.equal(named(win, "trackCustom", events.buyClick).length, 1);
+});
