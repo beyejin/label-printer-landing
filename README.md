@@ -83,6 +83,19 @@ npm run build
 
 ## 배포
 
+2026년 10월 30일 Vercel에 배포했고 두 주소의 공개 응답을 확인했습니다.
+
+- [A 나만의 것](https://label-printer-landing.vercel.app/a)
+- [B 친구랑 함께](https://label-printer-landing.vercel.app/b)
+
+현재 픽셀 ID는 비어 있으므로 실제 이벤트는 보내지 않습니다. 상품 사진 자리와 초안 안내도 남아 있습니다. 광고 집행 전에 픽셀 연결과 테스트 이벤트 수신, 실제 상품 사진을 확인해야 합니다.
+
+이번 배포는 Vercel CLI로 진행했습니다. GitHub 자동 배포 연결은 현재 Vercel 앱의 저장소 접근 범위에 없어 완료되지 않았습니다. 코드를 푸시하는 것만으로 배포가 갱신되지는 않습니다. 기존 연결 폴더에서 다음 명령으로 다시 배포합니다.
+
+```sh
+npx vercel deploy --prod --scope hanyejin8844-9549s-projects
+```
+
 `vercel.json`의 빌드 명령은 `node build.js`, 출력 폴더는 `dist`입니다.
 
 1. Vercel에서 이 저장소를 연결합니다. Framework Preset은 Other입니다.
