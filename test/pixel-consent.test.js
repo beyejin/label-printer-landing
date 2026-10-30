@@ -1,0 +1,155 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("fs");
+const { JSDOM } = require("jsdom");
+const app = require("../app.js");
+const events = require("../events.js");
+const pixel = require("../pixel.js");
+
+const product = "https://www.coupang.com/vp/products/8113159630?itemId=22992058726&vendorItemId=95681947785";
+// 테스트 안에서만 쓰는 가짜 픽셀 ID. 소스와 광고에는 넣지 않는다.
+const mockPixelId = "123456789012345";
+
+function callsOf(win) {
+  return win.__calls;
+}
+
+function load(file, url, options) {
+  const html = fs.readFileSync(file, "utf8");
+  const dom = new JSDOM(html, { url: url });
+  const win = dom.window;
+  const calls = [];
+  win.__calls = calls;
+  win.fbq = function () {
+    calls.push(Array.from(arguments));
+  };
+  win.OJILLEN_EVENTS = events;
+  win.OJILLEN_PIXEL = pixel;
+  win.OJILLEN = Object.assign({
+    pixelId: "",
+    coupangUrl: product,
+    partnersUrl: "",
+    productPhoto: ""
+  }, options || {});
+  app.boot(win.document, win);
+  return win;
+}
+
+function pixelScripts(win) {
+  return Array.from(win.document.querySelectorAll("script")).filter(function (el) {
+    return (el.getAttribute("src") || "").indexOf("fbevents.js") !== -1;
+  });
+}
+
+function named(win, method, name) {
+  return callsOf(win).filter(function (call) {
+    return call[0] === method && call[1] === name;
+  });
+}
+
+test("동의 전에는 Meta 호출과 스크립트가 없다", () => {
+  const win = load("a/index.html", "http://127.0.0.1:8765/a?utm_source=meta&fbclid=abc");
+  const link = win.document.querySelector("[data-buy]");
+  assert.equal(pixelScripts(win).length, 0);
+  assert.equal(callsOf(win).length, 0);
+  assert.equal(win.document.getElementById("consent").hidden, false);
+  link.dispatchEvent(new win.MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }));
+  link.dispatchEvent(new win.MouseEvent("click", { bubbles: true, cancelable: true, ctrlKey: true, button: 0 }));
+  link.dispatchEvent(new win.MouseEvent("auxclick", { bubbles: true, cancelable: true, button: 1 }));
+  assert.equal(callsOf(win).length, 0);
+  assert.equal(pixelScripts(win).length, 0);
+  assert.equal(link.getAttribute("target"), "_blank");
+  assert.equal(link.getAttribute("rel"), "noopener");
+  assert.equal(new URL(link.href).searchParams.get("utm_source"), "meta");
+  assert.equal(new URL(link.href).searchParams.get("fbclid"), "abc");
+  assert.equal(new URL(link.href).searchParams.get("variant"), "A");
+  assert.equal(link.href.includes("coupang.com"), true);
+});
+
+test("동의 후 PageView에 변형이 실리고 BuyClick은 한 번만 나간다", () => {
+  const win = load("a/index.html", "http://127.0.0.1:8765/a", { pixelId: mockPixelId });
+  win.document.getElementById("consent-agree").click();
+  assert.equal(pixelScripts(win).length, 1);
+  assert.equal(pixelScripts(win)[0].getAttribute("src"), pixel.scriptUrl);
+  const views = named(win, "track", events.pageView);
+  assert.equal(views.length, 1);
+  assert.deepEqual(views[0][2], { variant: "A" });
+  assert.equal(named(win, "init", mockPixelId).length, 1);
+  const link = win.document.querySelector("[data-buy]");
+  link.dispatchEvent(new win.MouseEvent("auxclick", { bubbles: true, cancelable: true, button: 1 }));
+  link.dispatchEvent(new win.MouseEvent("click", { bubbles: true, cancelable: true, ctrlKey: true, button: 0 }));
+  link.dispatchEvent(new win.MouseEvent("click", { bubbles: true, cancelable: true, shiftKey: true, button: 0 }));
+  link.dispatchEvent(new win.MouseEvent("click", { bubbles: true, cancelable: true, button: 0 }));
+  const buys = named(win, "trackCustom", events.buyClick);
+  assert.equal(buys.length, 1);
+  assert.equal(buys[0][2].variant, "A");
+  assert.equal(buys[0][2].content_name, events.productName);
+  assert.equal(win.sessionStorage.getItem(app.buyClickKey("A")), "1");
+  assert.equal(win.document.getElementById("consent").hidden, true);
+});
+
+test("같은 탭 세션에서 새로고침하면 PageView만 다시 보내고 BuyClick은 보내지 않는다", () => {
+  const first = load("b/index.html", "http://127.0.0.1:8765/b", { pixelId: mockPixelId });
+  first.document.getElementById("consent-agree").click();
+  first.document.querySelector("[data-buy]").dispatchEvent(new first.MouseEvent("click", { bubbles: true, cancelable: true }));
+  assert.equal(named(first, "track", events.pageView).length, 1);
+  assert.equal(named(first, "trackCustom", events.buyClick).length, 1);
+  assert.equal(named(first, "trackCustom", events.buyClick)[0][2].variant, "B");
+
+  const second = load("b/index.html", "http://127.0.0.1:8765/b", { pixelId: mockPixelId });
+  second.localStorage.setItem(app.consentKey, "agree");
+  second.sessionStorage.setItem(app.buyClickKey("B"), "1");
+  app.boot(second.document, second);
+  assert.equal(named(second, "track", events.pageView).length, 1);
+  assert.deepEqual(named(second, "track", events.pageView)[0][2], { variant: "B" });
+  second.document.querySelector("[data-buy]").dispatchEvent(new second.MouseEvent("click", { bubbles: true, cancelable: true }));
+  second.document.querySelector("[data-buy]").dispatchEvent(new second.MouseEvent("auxclick", { bubbles: true, cancelable: true, button: 1 }));
+  assert.equal(named(second, "trackCustom", events.buyClick).length, 0);
+});
+
+test("거절하면 스크립트를 넣지 않고 구매 링크는 남는다", () => {
+  const win = load("a/index.html", "http://127.0.0.1:8765/a?utm_campaign=class", { pixelId: mockPixelId });
+  win.document.getElementById("consent-decline").click();
+  assert.equal(win.localStorage.getItem(app.consentKey), "decline");
+  assert.equal(pixelScripts(win).length, 0);
+  assert.equal(callsOf(win).length, 0);
+  const link = win.document.querySelector("[data-buy]");
+  link.dispatchEvent(new win.MouseEvent("click", { bubbles: true, cancelable: true }));
+  assert.equal(callsOf(win).length, 0);
+  assert.equal(link.getAttribute("target"), "_blank");
+  assert.equal(link.getAttribute("rel"), "noopener");
+  assert.equal(new URL(link.href).hostname, "www.coupang.com");
+  assert.equal(new URL(link.href).searchParams.get("utm_campaign"), "class");
+
+  const again = load("a/index.html", "http://127.0.0.1:8765/a", { pixelId: mockPixelId });
+  again.localStorage.setItem(app.consentKey, "decline");
+  app.boot(again.document, again);
+  assert.equal(again.document.getElementById("consent").hidden, true);
+  assert.equal(pixelScripts(again).length, 0);
+  assert.equal(callsOf(again).length, 0);
+  again.document.querySelector("[data-buy]").click();
+  assert.equal(callsOf(again).length, 0);
+});
+
+test("픽셀 ID가 비어 있으면 동의해도 스크립트를 넣지 않는다", () => {
+  const win = load("a/index.html", "http://127.0.0.1:8765/a");
+  win.document.getElementById("consent-agree").click();
+  assert.equal(win.localStorage.getItem(app.consentKey), "agree");
+  assert.equal(pixelScripts(win).length, 0);
+  assert.equal(callsOf(win).length, 0);
+  const link = win.document.querySelector("[data-buy]");
+  assert.equal(link.getAttribute("target"), "_blank");
+  link.dispatchEvent(new win.MouseEvent("click", { bubbles: true, cancelable: true }));
+  assert.equal(callsOf(win).length, 0);
+});
+
+test("상품 사진 경로가 비어 있으면 이미지를 넣지 않는다", () => {
+  const win = load("a/index.html", "http://127.0.0.1:8765/a");
+  const slot = win.document.querySelector("[data-product-photo]");
+  assert.equal(slot.querySelector("img"), null);
+  assert.equal(slot.textContent.includes("상품 사진 자리"), true);
+  win.OJILLEN.productPhoto = "/assets/product.jpg";
+  app.boot(win.document, win);
+  assert.equal(slot.querySelector("img").getAttribute("src"), "/assets/product.jpg");
+  assert.equal(slot.querySelector("img").getAttribute("alt"), events.productName);
+});
