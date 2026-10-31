@@ -13,6 +13,7 @@ const required = [
   "AI로 만든 예시 이미지(실제 상품 아님)",
   "상품 사진 자리",
   "구매하기",
+  "₩19,900",
   'target="_blank"',
   'rel="noopener"',
   "/events.js",
@@ -21,8 +22,10 @@ const required = [
 ];
 const forbidden = [
   "쿠팡 2만",
-  "19,900",
   "19900",
+  "할인",
+  "평점",
+  "별점",
   "블루투스",
   "QR코드",
   "잉크",
