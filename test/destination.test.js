@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { buildDestination, normalizePixelId, normalizeVariant } = require("../app.js");
+const { buildDestination, landingAdParams, normalizePixelId, normalizeVariant, pixelParams } = require("../app.js");
 
 const product = "https://www.coupang.com/vp/products/8113159630?itemId=22992058726&vendorItemId=95681947785";
 
@@ -46,6 +46,20 @@ test("픽셀 ID와 변형 이름", () => {
   assert.equal(normalizePixelId("abc12345"), "");
   assert.equal(normalizeVariant("b"), "B");
   assert.equal(normalizeVariant(""), "A");
+});
+
+test("빈 utm은 빼고, 있는 utm_content와 utm_campaign만 이벤트에 더한다", () => {
+  assert.deepEqual(pixelParams("A", "", { content_name: "상품" }), {
+    variant: "A",
+    content_name: "상품"
+  });
+  assert.deepEqual(landingAdParams("utm_content=&utm_campaign="), {});
+  assert.deepEqual(landingAdParams("utm_content=%20exp%20&utm_campaign=%20"), { utm_content: "exp" });
+  assert.deepEqual(pixelParams("A", "utm_content=exp&utm_campaign=ojillen_hw9"), {
+    variant: "A",
+    utm_content: "exp",
+    utm_campaign: "ojillen_hw9"
+  });
 });
 
 test("구매 링크가 없으면 실패한다", () => {

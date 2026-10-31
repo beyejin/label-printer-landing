@@ -9,8 +9,7 @@ const required = [
   productName,
   "폰·카드·케이블",
   "문구 한 줄로 내 스타일 완성",
-  "초안, 실제 광고 전 확인 필요",
-  "초안 안전장치",
+  "방문 기록 동의",
   "AI로 만든 예시 이미지(실제 상품 아님)",
   "상품 사진 자리",
   "구매하기",
@@ -40,7 +39,12 @@ const forbidden = [
   "2만 원",
   "한정판",
   "딱 한 장",
-  "세상에 하나뿐"
+  "세상에 하나뿐",
+  "초안, 실제 광고 전 확인 필요",
+  "수업 실습용 초안",
+  "수업 실습 초안",
+  "초안 안전장치",
+  "draft-banner"
 ];
 
 function read(file) {
@@ -55,6 +59,20 @@ function sharedShell(html) {
     .replace(/<section class="motive"[\s\S]*?<\/section>/, "<section class=\"motive\"></section>");
 }
 
+function pointItems(html) {
+  const motive = html.match(/<ul class="pts">[\s\S]*?<\/ul>/);
+  if (!motive) return [];
+  return motive[0].match(/<li class="pt">[\s\S]*?<\/li>/g) || [];
+}
+
+function assertPointTitles(html, label) {
+  const items = pointItems(html);
+  if (items.length !== 3) throw new Error(label + " 포인트가 3개가 아닙니다.");
+  for (const item of items) {
+    if (!/<strong>[^<]+<\/strong>/.test(item)) throw new Error(label + " 포인트 제목이 없습니다.");
+  }
+}
+
 function assertSource() {
   const a = read("a/index.html");
   const b = read("b/index.html");
@@ -63,11 +81,10 @@ function assertSource() {
   const app = read("app.js");
   const pixel = read("pixel.js");
   const config = read("config.js");
+  const disclaimer = "이 페이지는 오지렌 공식 판매 사이트가 아닙니다.";
   for (const html of [a, b, home]) {
-    if (!html.includes("초안, 실제 광고 전 확인 필요")) {
-      throw new Error("초안 안내가 없습니다.");
-    }
     if (!html.includes(productName)) throw new Error("상품명이 없습니다.");
+    if (!html.includes(disclaimer)) throw new Error("판매 사이트 아님 안내가 없습니다.");
     for (const text of forbidden) {
       if (html.includes(text)) throw new Error("빼야 할 문구: " + text);
     }
@@ -84,7 +101,13 @@ function assertSource() {
     throw new Error("B 장면 이미지가 올바르지 않습니다.");
   }
   if (!a.includes("나만의 문구, 남들과 겹치지 않게")) throw new Error("A 헤드라인 누락");
+  if (!a.includes("<strong>겹치지 않는 한 줄</strong>")) throw new Error("A 두 번째 포인트 제목이 없습니다.");
   if (!b.includes("친구랑 맞춰 붙이는 우리 편 라벨")) throw new Error("B 헤드라인 누락");
+  assertPointTitles(a, "A");
+  assertPointTitles(b, "B");
+  if (!home.includes('href="/a"') || !home.includes("보관용")) {
+    throw new Error("루트 안내가 광고 주소 /a와 보관용 /b를 구분하지 않습니다.");
+  }
   if (sharedShell(a) !== sharedShell(b)) {
     throw new Error("A/B는 가운데 동기 구간과 제목만 달라야 합니다.");
   }
@@ -106,6 +129,19 @@ function assertSource() {
   }
   if (!config.includes('pixelId: ""')) throw new Error("픽셀 ID 자리가 비어 있지 않습니다.");
   if (/pixelId:\s*"\d+"/.test(config)) throw new Error("소스에 픽셀 숫자가 있습니다.");
+  if (!config.includes('productPhoto: "/assets/product.jpg"')) {
+    throw new Error("상품 사진 경로가 없습니다.");
+  }
+  const photoPath = path.join(root, "assets/product.jpg");
+  if (!fs.existsSync(photoPath)) throw new Error("assets/product.jpg가 없습니다.");
+  const photo = fs.readFileSync(photoPath);
+  if (photo.length < 8 || photo[0] !== 0xff || photo[1] !== 0xd8) {
+    throw new Error("상품 사진은 JPEG여야 합니다.");
+  }
+  if (!app.includes("utm_content") || !app.includes("utm_campaign")) {
+    throw new Error("광고 구분 매개변수가 없습니다.");
+  }
+  if (!app.includes("variant: variant")) throw new Error("variant 매개변수가 없습니다.");
   for (const file of ["app.js", "pixel.js", "config.js", "events.js", "server.js"]) {
     const result = spawnSync(process.execPath, ["--check", path.join(root, file)], { encoding: "utf8" });
     if (result.status !== 0) throw new Error(result.stderr || file + " 구문 오류");
@@ -159,6 +195,9 @@ function build(env) {
   if (fs.existsSync(path.join(root, "assets/product.jpg"))) files.push("assets/product.jpg");
   for (const rel of files) copyFile(rel);
   fs.writeFileSync(path.join(dist, "config.js"), withPixelId(configSource, pixelId));
+  if (!fs.existsSync(path.join(dist, "assets/product.jpg"))) {
+    throw new Error("dist에 상품 사진이 없습니다.");
+  }
   const landing = fs.readFileSync(path.join(dist, "a/index.html"), "utf8");
   if (landing.includes("fbevents") || landing.includes("facebook.com/tr")) {
     throw new Error("빌드 결과에 Meta 스크립트가 들어가면 안 됩니다.");

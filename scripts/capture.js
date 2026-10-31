@@ -28,19 +28,20 @@ async function inspect(page) {
       }
     });
     const text = document.body.innerText;
+    const title = document.getElementById("consent-title");
     return {
       overflows,
       pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      draft: text.includes("초안, 실제 광고 전 확인 필요"),
-      consent: text.includes("초안 안전장치"),
+      draft: ["초안, 실제 광고 전 확인 필요", "수업 실습용 초안", "초안 안전장치", "수업 실습 초안"].some((item) => text.includes(item)),
+      consent: !!(title && title.textContent.indexOf("방문 기록 동의") !== -1),
       consentHidden: document.getElementById("consent") ? document.getElementById("consent").hidden : null,
       buy: text.includes("구매하기"),
       productShown: text.includes("오지렌 네임스티커 감열식 라벨프린터 라벨기 핑크"),
       ai: text.includes("AI로 만든 예시 이미지(실제 상품 아님)"),
-      slot: text.includes("상품 사진 자리"),
+      photo: !!document.querySelector("[data-product-photo] img"),
+      pointTitle: text.includes("겹치지 않는 한 줄"),
       banned: ["쿠팡 2만", "19,900", "블루투스", "QR코드", "예시 후기", "실제 제품 사진", "미니", "한정판", "딱 한 장", "세상에 하나뿐"].filter((item) => text.includes(item)),
       boxes: {
-        draft: box(".draft-banner"),
         consent: box("#consent"),
         buy: box(".cta"),
         name: box(".product-name"),
@@ -96,8 +97,6 @@ async function inspect(page) {
     }
     const info = await inspect(page);
     const pairs = [
-      ["draft", "consent"],
-      ["draft", "buy"],
       ["consent", "buy"],
       ["name", "buy"],
       ["ai", "slot"],
@@ -111,7 +110,8 @@ async function inspect(page) {
     info.name = name;
     info.width = width;
     report.push(info);
-    if (info.pageOverflow > 0 || info.overflows.length || info.overlaps.length || info.banned.length || !info.draft || !info.buy || !info.productShown || !info.ai || !info.slot) {
+    const missingPointTitle = name.indexOf("-a-") !== -1 && !info.pointTitle;
+    if (info.pageOverflow > 0 || info.overflows.length || info.overlaps.length || info.banned.length || info.draft || !info.consent || !info.buy || !info.productShown || !info.ai || !info.photo || missingPointTitle) {
       failed = true;
       console.error("CHECK_FAIL", name, JSON.stringify(info));
     }

@@ -154,6 +154,61 @@ test("상품 사진 경로가 비어 있으면 이미지를 넣지 않는다", (
   assert.equal(slot.querySelector("img").getAttribute("alt"), events.productName);
 });
 
+test("utm_content와 utm_campaign이 있으면 PageView와 BuyClick에 싣고 variant는 유지한다", () => {
+  const win = load(
+    "a/index.html",
+    "http://127.0.0.1:8765/a?utm_source=meta&utm_medium=paid&utm_campaign=ojillen_hw9&utm_content=control",
+    { pixelId: mockPixelId }
+  );
+  win.document.getElementById("consent-agree").click();
+  assert.deepEqual(named(win, "track", events.pageView)[0][2], {
+    variant: "A",
+    utm_content: "control",
+    utm_campaign: "ojillen_hw9"
+  });
+  win.document.querySelector("[data-buy]").dispatchEvent(new win.MouseEvent("click", { bubbles: true, button: 0 }));
+  assert.deepEqual(named(win, "trackCustom", events.buyClick)[0][2], {
+    variant: "A",
+    utm_content: "control",
+    utm_campaign: "ojillen_hw9",
+    content_name: events.productName
+  });
+});
+
+test("utm_content만 있으면 utm_campaign은 넣지 않는다", () => {
+  const win = load("a/index.html", "http://127.0.0.1:8765/a?utm_content=exp", { pixelId: mockPixelId });
+  win.document.getElementById("consent-agree").click();
+  assert.deepEqual(named(win, "track", events.pageView)[0][2], {
+    variant: "A",
+    utm_content: "exp"
+  });
+  assert.equal(Object.prototype.hasOwnProperty.call(named(win, "track", events.pageView)[0][2], "utm_campaign"), false);
+});
+
+test("utm_campaign만 있어도 variant와 함께 보낸다", () => {
+  const win = load("b/index.html", "http://127.0.0.1:8765/b?utm_campaign=ojillen_hw9", { pixelId: mockPixelId });
+  win.document.getElementById("consent-agree").click();
+  assert.deepEqual(named(win, "track", events.pageView)[0][2], {
+    variant: "B",
+    utm_campaign: "ojillen_hw9"
+  });
+});
+
+test("config.js 상품 사진을 빈 자리에 그리고 A 포인트 제목을 유지한다", () => {
+  const config = fs.readFileSync("config.js", "utf8");
+  const match = /productPhoto:\s*"([^"]*)"/.exec(config);
+  assert.equal(match && match[1], "/assets/product.jpg");
+  const win = load("a/index.html", "http://127.0.0.1:8765/a", { productPhoto: match[1] });
+  const img = win.document.querySelector("[data-product-photo] img");
+  assert.equal(img.getAttribute("src"), "/assets/product.jpg");
+  assert.equal(img.getAttribute("alt"), events.productName);
+  assert.equal(win.document.body.textContent.includes("상품 사진 자리"), false);
+  assert.equal(win.document.body.textContent.includes("초안, 실제 광고 전 확인 필요"), false);
+  assert.equal(win.document.body.textContent.includes("방문 기록 동의"), true);
+  const titles = Array.from(win.document.querySelectorAll(".pt strong")).map((el) => el.textContent);
+  assert.deepEqual(titles, ["나만 아는 문구", "겹치지 않는 한 줄", "같은 폰도 다르게"]);
+});
+
 test("오른쪽 클릭은 전환을 소비하지 않고 다음 실제 클릭을 센다", () => {
   const win = load("a/index.html", "http://127.0.0.1:8765/a", { pixelId: mockPixelId });
   win.document.getElementById("consent-agree").click();

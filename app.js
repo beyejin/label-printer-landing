@@ -19,6 +19,30 @@
     return String(value || "").toUpperCase() === "B" ? "B" : "A";
   }
 
+  function landingAdParams(search) {
+    var params = search instanceof URLSearchParams ? search : new URLSearchParams(search || "");
+    var content = String(params.get("utm_content") || "").trim();
+    var campaign = String(params.get("utm_campaign") || "").trim();
+    var extra = {};
+    if (content) extra.utm_content = content;
+    if (campaign) extra.utm_campaign = campaign;
+    return extra;
+  }
+
+  // variant는 페이지(A/B) 값 그대로 둔다. 광고 구분은 주소의 utm으로만 더한다.
+  function pixelParams(variant, search, extra) {
+    var out = { variant: variant };
+    var ad = landingAdParams(search);
+    if (ad.utm_content) out.utm_content = ad.utm_content;
+    if (ad.utm_campaign) out.utm_campaign = ad.utm_campaign;
+    if (extra) {
+      Object.keys(extra).forEach(function (key) {
+        out[key] = extra[key];
+      });
+    }
+    return out;
+  }
+
   function buyClickKey(variant) {
     return "ojillen-buyclick-" + normalizeVariant(variant);
   }
@@ -120,7 +144,7 @@
       try {
         win.fbq("set", "autoConfig", false, id);
         win.fbq("init", id);
-        win.fbq("track", events.pageView, { variant: variant });
+        win.fbq("track", events.pageView, pixelParams(variant, win.location.search));
       } catch (error) {}
     }
 
@@ -135,10 +159,9 @@
       buySent = true;
       markBuySent(win, variant);
       try {
-        win.fbq("trackCustom", events.buyClick, {
-          variant: variant,
+        win.fbq("trackCustom", events.buyClick, pixelParams(variant, win.location.search, {
           content_name: events.productName
-        });
+        }));
       } catch (error) {}
     }
 
@@ -179,6 +202,8 @@
     buyClickKey: buyClickKey,
     normalizePixelId: normalizePixelId,
     normalizeVariant: normalizeVariant,
+    landingAdParams: landingAdParams,
+    pixelParams: pixelParams,
     buildDestination: buildDestination,
     readConsent: readConsent,
     boot: boot
