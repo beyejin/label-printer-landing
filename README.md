@@ -26,7 +26,7 @@ npm run build
 
 ## 상품 사진
 
-`config.js`의 `productPhoto`는 `"/assets/product.jpg"`입니다. 이 파일은 아래 쿠팡 CDN 대표 이미지(1000×1000)에서 테이프 문구와 파우치를 지운 JPEG입니다. 본체 앞면, 버튼, 로고, 옆 슬라이더는 원본 픽셀입니다. 파우치가 가렸던 왼쪽 아래 모서리는 그 자리에서 잘라 냈습니다.
+`config.js`의 `productPhoto`는 `"/assets/product.jpg"`입니다. 이 파일은 아래 쿠팡 CDN 대표 이미지(1000×1000)에서 테이프 문구, 왼쪽 테이프 고리, 파우치를 지운 JPEG입니다. 버튼, 로고, 옆 슬라이더와 가려지지 않은 본체는 원본 픽셀입니다. 파우치가 가렸던 왼쪽 아래 모서리는 오른쪽 아래 모서리의 둥근 곡선을 기준으로 이어 붙였고, 배경은 원본과 같은 옅은 그라데이션입니다.
 
 `https://thumbnail.coupangcdn.com/thumbnails/remote/1000x1000ex/image/vendor_inventory/e8f9/a0703e42dcd726aef299748f42f322c7438ba747220cc221c626f15b93ec.png`
 
