@@ -124,7 +124,7 @@ npx vercel deploy --prod --scope hanyejin8844-9549s-projects
 - 교수님 슬라이드 9·20번 하이퍼링크: `https://www.coupang.com/vp/products/8113159630?itemId=22992058726&vendorItemId=95681947785` (슬라이드 pptx로 내보내서 확인)
 - 쿠팡 페이지는 403으로 막혀서, 로우차트(https://www.lowchart.com/8113159630-22992058726)가 이 상품의 대표 이미지로 쓰는 쿠팡 CDN 원본을 받았어요. alt: "오지렌 네임스티커 감열식 라벨프린터 라벨기 핑크, WP9529(핑크), 1개"
 - 받은 URL: `https://thumbnail.coupangcdn.com/thumbnails/remote/1000x1000ex/image/vendor_inventory/e8f9/a0703e42dcd726aef299748f42f322c7438ba747220cc221c626f15b93ec.png` (1000×1000)
-- 랜딩에서는 이 파일을 JPEG로 저장해 `assets/product.jpg`로 씁니다. 자르거나 글자를 지우지 않았어요.
+- 랜딩 `assets/product.jpg`는 이 파일에서 테이프 문구와 파우치를 지운 JPEG예요. 본체 앞면은 원본이고, 파우치가 가렸던 왼쪽 아래 모서리만 비어 있어요. 대조 광고는 `docs/ads/control_ad.png`입니다.
 - 원본 보관 위치(당시 작업 폴더): `/workspace/study/banners/control/src/e8f9.png`. 다른 옵션 이미지(그린·화이트·블루 본체, 라벨지)도 그 `src/`에 있었어요. 이 레포에는 광고 두 장(`docs/ads/`)과 랜딩용 JPEG만 넣었어요.
 - 합성 스크립트(당시 작업 폴더): `/workspace/study/banners/control/make_control.py`
 
