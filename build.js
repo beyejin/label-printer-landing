@@ -8,7 +8,6 @@ const productName = "오지렌 네임스티커 감열식 라벨프린터 라벨�
 const required = [
   productName,
   "방문 기록 동의",
-  "상품 사진 자리",
   "구매하기",
   "₩19,900",
   'target="_blank"',
@@ -99,6 +98,8 @@ function assertSource() {
   if (!a.includes("<h1>폰·카드·케이블<br>문구 한 줄로 내 스타일 완성</h1>")) throw new Error("A 제목이 실험 광고와 다릅니다.");
   if (b.includes("/assets/scene-") || b.includes("AI로 만든")) throw new Error("B에는 AI 장면을 넣지 않습니다.");
   if (!b.includes("<h1>오지렌 네임스티커<br>감열식 라벨프린터</h1>")) throw new Error("B 제목이 대조 광고와 다릅니다.");
+  if (a.includes("data-product-photo")) throw new Error("A에는 광고 A에 없는 상품 사진을 넣지 않습니다.");
+  if (!b.includes("data-product-photo") || !b.includes("상품 사진 자리")) throw new Error("B 상품 사진 자리가 없습니다.");
   assertPointTitles(a, "A");
   assertPointTitles(b, "B");
   if (!home.includes('href="/a"') || !home.includes('href="/b"')) {
