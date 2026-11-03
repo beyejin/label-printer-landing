@@ -59,6 +59,7 @@ function sharedShell(html) {
     .replace(/data-variant="[AB]"/, 'data-variant="X"')
     .replace(/<title>[\s\S]*?<\/title>/, "<title></title>")
     .replace(/<meta name="description" content="[\s\S]*?">/, '<meta name="description" content="">')
+    .replace(/<section class="lead-scene"[\s\S]*?<\/section>/, "<section class=\"lead-scene\"></section>")
     .replace(/<section class="motive"[\s\S]*?<\/section>/, "<section class=\"motive\"></section>");
 }
 
@@ -112,7 +113,7 @@ function assertSource() {
     throw new Error("루트 안내가 광고 주소 /a와 보관용 /b를 구분하지 않습니다.");
   }
   if (sharedShell(a) !== sharedShell(b)) {
-    throw new Error("A/B는 가운데 동기 구간과 제목만 달라야 합니다.");
+    throw new Error("A/B는 맨 위 장면, 가운데 동기 구간과 제목만 달라야 합니다.");
   }
   if (home.includes("/pixel.js") || home.includes("fbq(") || home.includes("/events.js")) {
     throw new Error("루트 페이지에는 픽셀을 넣지 않습니다.");
