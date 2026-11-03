@@ -14,7 +14,8 @@ const required = [
   'rel="noopener"',
   "/events.js",
   "/pixel.js",
-  "/app.js"
+  "/app.js",
+  "쿠팡 파트너스 활동의 일환"
 ];
 const forbidden = [
   "쿠팡 2만",

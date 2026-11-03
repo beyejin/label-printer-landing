@@ -76,7 +76,7 @@ npm run build
 
 비어 있으면 픽셀을 불러오지 않습니다. 구매하기는 그대로 동작합니다.
 
-쿠팡 파트너스 링크가 생기면 `config.js`의 `partnersUrl`에 넣습니다. 비어 있으면 아래 상품 주소로 갑니다.
+`config.js`의 `partnersUrl`은 쿠팡 파트너스 링크 `https://link.coupang.com/a/inkMOG9AyW`입니다. 이 링크는 아래 상품 주소로 이동합니다. 비워 두면 아래 상품 주소로 바로 갑니다. 파트너스 링크를 쓰므로 /a와 /b 구매하기 아래에 수수료 고지 문구를 둡니다.
 
 `https://www.coupang.com/vp/products/8113159630?itemId=22992058726&vendorItemId=95681947785`
 
