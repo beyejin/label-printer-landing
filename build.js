@@ -7,10 +7,7 @@ const dist = path.join(root, "dist");
 const productName = "오지렌 네임스티커 감열식 라벨프린터 라벨기 핑크";
 const required = [
   productName,
-  "폰·카드·케이블",
-  "문구 한 줄로 내 스타일 완성",
   "방문 기록 동의",
-  "AI로 만든 예시 이미지(실제 상품 아님)",
   "상품 사진 자리",
   "구매하기",
   "₩19,900",
@@ -55,12 +52,9 @@ function read(file) {
 }
 
 function sharedShell(html) {
-  return html
-    .replace(/data-variant="[AB]"/, 'data-variant="X"')
-    .replace(/<title>[\s\S]*?<\/title>/, "<title></title>")
-    .replace(/<meta name="description" content="[\s\S]*?">/, '<meta name="description" content="">')
-    .replace(/<section class="lead-scene"[\s\S]*?<\/section>/, "<section class=\"lead-scene\"></section>")
-    .replace(/<section class="motive"[\s\S]*?<\/section>/, "<section class=\"motive\"></section>");
+  const consent = html.match(/<div class="consent"[\s\S]*?<\/div>\n<\/div>/);
+  const purchase = html.match(/<section class="purchase"[\s\S]*?<\/section>/);
+  return (consent ? consent[0] : "") + (purchase ? purchase[0] : "");
 }
 
 function pointItems(html) {
@@ -98,22 +92,20 @@ function assertSource() {
       if (!html.includes(text)) throw new Error("랜딩 공통 문구 누락: " + text);
     }
   }
-  if (!a.includes("/assets/scene-a.jpg") || a.includes("/assets/scene-b.jpg")) {
-    throw new Error("A 장면 이미지가 올바르지 않습니다.");
+  // A는 실험 광고(연출 장면, 문구), B는 대조 광고(상품 사진, 상품명)와 같은 화면이다.
+  if (!a.includes("/assets/scene-a.jpg") || !a.includes("AI로 만든 예시 이미지(실제 상품 아님)")) {
+    throw new Error("A 맨 위 장면이나 AI 예시 표시가 없습니다.");
   }
-  if (!b.includes("/assets/scene-b.jpg") || b.includes("/assets/scene-a.jpg")) {
-    throw new Error("B 장면 이미지가 올바르지 않습니다.");
-  }
-  if (!a.includes("나만의 문구, 남들과 겹치지 않게")) throw new Error("A 헤드라인 누락");
-  if (!a.includes("<strong>겹치지 않는 한 줄</strong>")) throw new Error("A 두 번째 포인트 제목이 없습니다.");
-  if (!b.includes("친구랑 맞춰 붙이는 우리 편 라벨")) throw new Error("B 헤드라인 누락");
+  if (!a.includes("<h1>폰·카드·케이블<br>문구 한 줄로 내 스타일 완성</h1>")) throw new Error("A 제목이 실험 광고와 다릅니다.");
+  if (b.includes("/assets/scene-") || b.includes("AI로 만든")) throw new Error("B에는 AI 장면을 넣지 않습니다.");
+  if (!b.includes("<h1>오지렌 네임스티커<br>감열식 라벨프린터</h1>")) throw new Error("B 제목이 대조 광고와 다릅니다.");
   assertPointTitles(a, "A");
   assertPointTitles(b, "B");
-  if (!home.includes('href="/a"') || !home.includes("보관용")) {
-    throw new Error("루트 안내가 광고 주소 /a와 보관용 /b를 구분하지 않습니다.");
+  if (!home.includes('href="/a"') || !home.includes('href="/b"')) {
+    throw new Error("루트 안내에 광고 A /a와 광고 B /b가 없습니다.");
   }
   if (sharedShell(a) !== sharedShell(b)) {
-    throw new Error("A/B는 맨 위 장면, 가운데 동기 구간과 제목만 달라야 합니다.");
+    throw new Error("A/B는 동의와 구매 영역이 같아야 합니다.");
   }
   if (home.includes("/pixel.js") || home.includes("fbq(") || home.includes("/events.js")) {
     throw new Error("루트 페이지에는 픽셀을 넣지 않습니다.");
@@ -191,7 +183,6 @@ function build(env) {
     "pixel.js",
     "server.js",
     "assets/scene-a.jpg",
-    "assets/scene-b.jpg",
     "assets/fonts/pretendard-400.woff2",
     "assets/fonts/pretendard-700.woff2",
     "assets/fonts/pretendard-900.woff2"
