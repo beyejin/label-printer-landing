@@ -144,7 +144,7 @@ test("픽셀 ID가 비어 있으면 동의해도 스크립트를 넣지 않는�
 });
 
 test("상품 사진 경로가 비어 있으면 이미지를 넣지 않는다", () => {
-  const win = load("a/index.html", "http://127.0.0.1:8765/a");
+  const win = load("b/index.html", "http://127.0.0.1:8765/b");
   const slot = win.document.querySelector("[data-product-photo]");
   assert.equal(slot.querySelector("img"), null);
   assert.equal(slot.textContent.includes("상품 사진 자리"), true);
@@ -194,15 +194,17 @@ test("utm_campaign만 있어도 variant와 함께 보낸다", () => {
   });
 });
 
-test("config.js 상품 사진을 빈 자리에 그리고 A 포인트 제목을 유지한다", () => {
+test("config.js 상품 사진을 B 빈 자리에 그리고 A에는 상품 사진 없이 포인트 제목을 유지한다", () => {
   const config = fs.readFileSync("config.js", "utf8");
   const match = /productPhoto:\s*"([^"]*)"/.exec(config);
   assert.equal(match && match[1], "/assets/product.jpg");
-  const win = load("a/index.html", "http://127.0.0.1:8765/a", { productPhoto: match[1] });
-  const img = win.document.querySelector("[data-product-photo] img");
+  const bWin = load("b/index.html", "http://127.0.0.1:8765/b", { productPhoto: match[1] });
+  const img = bWin.document.querySelector("[data-product-photo] img");
   assert.equal(img.getAttribute("src"), "/assets/product.jpg");
   assert.equal(img.getAttribute("alt"), events.productName);
-  assert.equal(win.document.body.textContent.includes("상품 사진 자리"), false);
+  assert.equal(bWin.document.body.textContent.includes("상품 사진 자리"), false);
+  const win = load("a/index.html", "http://127.0.0.1:8765/a", { productPhoto: match[1] });
+  assert.equal(win.document.querySelector("[data-product-photo]"), null);
   assert.equal(win.document.body.textContent.includes("초안, 실제 광고 전 확인 필요"), false);
   assert.equal(win.document.body.textContent.includes("방문 기록 동의"), true);
   const titles = Array.from(win.document.querySelectorAll(".pt strong")).map((el) => el.textContent);

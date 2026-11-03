@@ -38,7 +38,7 @@ async function inspect(page) {
       buy: text.includes("구매하기"),
       productShown: text.includes("오지렌 네임스티커 감열식 라벨프린터 라벨기 핑크"),
       ai: !location.pathname.startsWith("/a") || text.includes("AI로 만든 예시 이미지(실제 상품 아님)"),
-      photo: !!document.querySelector("[data-product-photo] img"),
+      photo: location.pathname.startsWith("/a") ? !document.querySelector("[data-product-photo]") : !!document.querySelector("[data-product-photo] img"),
       pointTitle: text.includes("포토카드"),
       banned: ["쿠팡 2만", "할인", "평점", "별점", "블루투스", "QR코드", "예시 후기", "실제 제품 사진", "미니", "한정판", "딱 한 장", "세상에 하나뿐"].filter((item) => text.includes(item)),
       boxes: {

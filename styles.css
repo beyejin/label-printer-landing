@@ -88,18 +88,6 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
   color: #333;
 }
 
-.product-shot {
-  margin: 8px var(--gutter) 0;
-  padding-top: 14px;
-  border-top: 1px solid #f3ecee;
-}
-.shot-note {
-  margin: 0 0 8px;
-  color: #5c5658;
-  font-size: 12px;
-  line-height: 1.45;
-}
-.product-shot .photo-slot { border-radius: 12px; overflow: hidden; }
 .photo-slot {
   display: flex;
   min-height: 220px;
