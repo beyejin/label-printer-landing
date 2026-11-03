@@ -50,8 +50,8 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 }
 
 .consent {
-  margin: 0;
-  padding: 12px var(--gutter) 14px;
+  margin: 0 0 10px;
+  padding: 0 0 10px;
   background: #fff;
   border-bottom: 1px solid #f0e7ea;
 }
@@ -61,16 +61,16 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
   font-weight: 800;
   letter-spacing: -0.03em;
 }
-.consent p { margin: 0; color: #4a4547; font-size: 13px; line-height: 1.55; }
+.consent p { margin: 0; color: #4a4547; font-size: 12px; line-height: 1.5; }
 .consent-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 8px;
 }
 .consent-actions button {
-  flex: 1 1 140px;
-  min-height: 48px;
+  flex: 1 1 120px;
+  min-height: 44px;
   border-radius: 12px;
   font: inherit;
   font-size: 15px;
@@ -350,6 +350,7 @@ h1 {
     box-shadow: 0 -8px 24px rgba(40, 16, 28, 0.06);
   }
   .page { padding-bottom: 96px; }
+  .page:has(#consent:not([hidden])) { padding-bottom: 270px; }
   .site-foot { padding-bottom: 12px; }
 }
 @media (min-width: 640px) {
