@@ -34,7 +34,7 @@ npm run build
 
 경로가 비어 있으면 사진 없이 “상품 사진 자리”만 보입니다. 지금 빌드는 그 경로와 `assets/product.jpg`(JPEG)가 있어야 통과하고, 파일이 있을 때만 `dist`에 복사합니다.
 
-가운데 `assets/scene-a.jpg`, `assets/scene-b.jpg`는 예시 장면입니다. 각 이미지 바로 위에 **AI로 만든 예시 이미지(실제 상품 아님)** 라고 적혀 있습니다.
+맨 위 `assets/scene-a.jpg`, `assets/scene-b.jpg`는 예시 장면입니다. 각 이미지 위쪽에 **AI로 만든 예시 이미지(실제 상품 아님)** 라고 적혀 있습니다. `scene-a.jpg`는 실험 광고(`docs/ads/experiment_ad.png`)의 AI 연출 사진에서 위쪽 문구와 아래 상품명 줄을 잘라낸 것이라, 광고 A와 랜딩 첫 화면이 같은 장면으로 이어집니다. 상품 사진(`product.jpg`)은 동기 문구 아래에 둡니다.
 
 ## 방문 기록 동의
 
