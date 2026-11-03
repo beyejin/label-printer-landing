@@ -153,21 +153,18 @@ h1 {
   letter-spacing: -0.04em;
 }
 
-.lead-scene { position: relative; background: #f3ecee; }
+.lead-scene { background: #f3ecee; }
 .lead-scene .ai-label {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  z-index: 1;
+  display: block;
   margin: 0;
   padding: 6px var(--gutter);
   border-radius: 0;
-  background: rgba(255, 255, 255, 0.92);
+  background: #fff;
   color: #4a4547;
   font-weight: 600;
 }
 .lead-scene .scene { border-radius: 0; aspect-ratio: 1080 / 830; }
+.lead-product { background: #fff; }
 [data-variant] .lead-scene .scene img { object-position: center; }
 .motive {
   margin: 8px var(--gutter) 0;

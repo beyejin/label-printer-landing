@@ -206,7 +206,7 @@ test("config.js 상품 사진을 빈 자리에 그리고 A 포인트 제목을 �
   assert.equal(win.document.body.textContent.includes("초안, 실제 광고 전 확인 필요"), false);
   assert.equal(win.document.body.textContent.includes("방문 기록 동의"), true);
   const titles = Array.from(win.document.querySelectorAll(".pt strong")).map((el) => el.textContent);
-  assert.deepEqual(titles, ["나만 아는 문구", "겹치지 않는 한 줄", "같은 폰도 다르게"]);
+  assert.deepEqual(titles, ["폰 케이스", "포토카드", "케이블"]);
 });
 
 test("오른쪽 클릭은 전환을 소비하지 않고 다음 실제 클릭을 센다", () => {

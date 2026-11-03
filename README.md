@@ -2,8 +2,9 @@
 
 광고 실험용 랜딩입니다. 화면에 적는 가격은 ₩19,900 하나이고, 할인·판매량·순위·만족도·후기·확인하지 않은 사양은 넣지 않습니다.
 
-- 광고 도착 주소는 `/a` 하나입니다. 실험 광고는 `utm_content=exp`, 대조 광고는 `utm_content=control` 입니다.
-- `/b` 는 레포에 남겨 둔 보관용 페이지이며 광고에 쓰지 않습니다.
+- 실험 광고 A는 `/a`, 대조 광고 B는 `/b`로 보냅니다. 각 랜딩 첫 화면은 그 광고와 같은 사진과 제목입니다. 실험 광고는 `utm_content=exp`, 대조 광고는 `utm_content=control` 입니다.
+- `/a`: 광고 A의 연출 장면(AI), 제목 "폰·카드·케이블 / 문구 한 줄로 내 스타일 완성".
+- `/b`: 광고 B의 상품 사진, 제목 "오지렌 네임스티커 / 감열식 라벨프린터". AI 장면은 넣지 않습니다.
 - `/` 는 주소 안내입니다. Meta 스크립트를 불러오지 않습니다. `/?v=a`, `/?v=b` 는 `/a`, `/b`로 넘깁니다.
 
 ## 로컬에서 보기
@@ -34,7 +35,7 @@ npm run build
 
 경로가 비어 있으면 사진 없이 “상품 사진 자리”만 보입니다. 지금 빌드는 그 경로와 `assets/product.jpg`(JPEG)가 있어야 통과하고, 파일이 있을 때만 `dist`에 복사합니다.
 
-맨 위 `assets/scene-a.jpg`, `assets/scene-b.jpg`는 예시 장면입니다. 각 이미지 위쪽에 **AI로 만든 예시 이미지(실제 상품 아님)** 라고 적혀 있습니다. `scene-a.jpg`는 실험 광고(`docs/ads/experiment_ad.png`)의 AI 연출 사진에서 위쪽 문구와 아래 상품명 줄을 잘라낸 것이라, 광고 A와 랜딩 첫 화면이 같은 장면으로 이어집니다. 상품 사진(`product.jpg`)은 동기 문구 아래에 둡니다.
+`/a` 맨 위 `assets/scene-a.jpg`는 예시 장면입니다. 이미지 위쪽에 **AI로 만든 예시 이미지(실제 상품 아님)** 라고 적혀 있습니다. `scene-a.jpg`는 실험 광고(`docs/ads/experiment_ad.png`)의 AI 연출 사진에서 위쪽 문구와 아래 상품명 줄을 잘라낸 것이라, 광고 A와 랜딩 첫 화면이 같은 장면으로 이어집니다. `/a`에서 상품 사진(`product.jpg`)은 동기 문구 아래, `/b`에서는 맨 위에 둡니다.
 
 ## 방문 기록 동의
 
@@ -65,7 +66,7 @@ npm run build
 
 구매하기는 `target="_blank"` `rel="noopener"` 로 새 탭을 엽니다. 이 페이지는 그대로 둡니다. 왼쪽 클릭, Ctrl, Shift, 가운데 클릭도 같은 이벤트를 보냅니다. 오른쪽 클릭으로 메뉴만 열 때는 전환을 세지 않습니다. 이벤트를 기다리느라 이동을 늦추지 않습니다. Meta가 받았다고 적지 않습니다.
 
-두 광고 모두 `/a`로 오므로 `variant`는 둘 다 `A`입니다. 광고별 구분은 `utm_content`(`exp` / `control`)로 합니다.
+광고 A는 `/a`라서 `variant`가 `A`, 광고 B는 `/b`라서 `B`입니다. `utm_content`(`exp` / `control`)도 같이 실립니다. 랜딩이 광고마다 달라서 구매하기 클릭률 차이에는 광고 문구와 랜딩 차이가 함께 들어갑니다.
 
 ## 픽셀 ID
 
@@ -94,12 +95,12 @@ npx vercel deploy --prod --scope hanyejin8844-9549s-projects
 1. Vercel에서 이 저장소를 연결합니다. Framework Preset은 Other입니다.
 2. 픽셀을 만든 뒤 Production 환경변수 `META_PIXEL_ID`에 숫자만 넣습니다.
 3. 위 명령으로 배포합니다.
-4. `https://label-printer-landing.vercel.app/config.js`에 `pixelId`가 숫자로 나오는지 확인합니다. `/`와 `/b`는 광고 주소로 쓰지 않습니다.
+4. `https://label-printer-landing.vercel.app/config.js`에 `pixelId`가 숫자로 나오는지 확인합니다. `/`는 광고 주소로 쓰지 않습니다.
 
 | 광고 | 도착 URL |
 | --- | --- |
 | 실험 (문구 한 줄로 내 스타일 완성) | `https://label-printer-landing.vercel.app/a?utm_source=meta&utm_medium=paid&utm_campaign=ojillen_hw9&utm_content=exp` |
-| 대조 (상품명) | `https://label-printer-landing.vercel.app/a?utm_source=meta&utm_medium=paid&utm_campaign=ojillen_hw9&utm_content=control` |
+| 대조 (상품명) | `https://label-printer-landing.vercel.app/b?utm_source=meta&utm_medium=paid&utm_campaign=ojillen_hw9&utm_content=control` |
 
 ## 자동 테스트와 실제 Meta 확인
 
@@ -111,8 +112,8 @@ Meta가 이벤트를 받았는지는 이 테스트로 알 수 없습니다. 배�
 
 ```text
 index.html       루트 안내. 픽셀 없음
-a/index.html     광고 랜딩 /a
-b/index.html     보관용 /b
+a/index.html     실험 광고 A 랜딩 /a
+b/index.html     대조 광고 B 랜딩 /b
 events.js        PageView, BuyClick, 상품명
 app.js           동의, 구매 링크, BuyClick, utm 매개변수
 pixel.js         동의 후에만 fbevents.js
@@ -122,7 +123,6 @@ styles.css
 server.js
 assets/product.jpg
 assets/scene-a.jpg
-assets/scene-b.jpg
 docs/hw9-handoff.md
 docs/ads/experiment_ad.png
 docs/ads/control_ad.png
